@@ -1,6 +1,6 @@
-
 /**
- * Class representing a WordNet
+ * Class representing a WordNet of hyponym/hypernym relationships between sets of synonyms (synsets).
+ * This class is immutable - properties cannnot be modified after instantiation.
  * @author ckingsley
  *
  */
@@ -63,7 +63,7 @@ public class WordNet {
 	 
 	/**
 	 * Returns all WordNet nouns
-	 * @return
+	 * @return Iterable collection of all nouns in all synsets in the WordNet
 	 */
 	public Iterable<String> nouns() {
 		return nouns.keys();
@@ -72,8 +72,8 @@ public class WordNet {
 	
 	/**
 	 * Is the word a WordNet noun?
-	 * @param word
-	 * @return
+	 * @param word word to search for in any of the synsets in the WordNet
+	 * @return boolean indicating whether word was present in the WordNet
 	 */
 	public boolean isNoun(String word) {
 		return nouns.contains(word);
@@ -81,10 +81,10 @@ public class WordNet {
 
 	
 	/**
-	 * Returns the distance between nounA and nounB
-	 * @param nounA
-	 * @param nounB
-	 * @return
+	 * Returns the shortest ancestral path between nounA and nounB, provided they are present in the WordNet
+	 * @param nounA First noun used to estimate shortest ancestral path
+	 * @param nounB Second noun used to estimate shortest ancestral path
+	 * @return Shortest ancestral path distance between two passed nouns
 	 */
 	public int distance(String nounA, String nounB) {
 		validateNoun(nounA);
@@ -100,10 +100,10 @@ public class WordNet {
 	
 	/**
 	 * Returns a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
-	 * in a shortest ancestral path (defined below)
-	 * @param nounA
-	 * @param nounB
-	 * @return
+	 * in a shortest ancestral path
+	 * @param nounA First noun used to find ancestor on shortest ancestral path
+	 * @param nounB Second noun used to find ancestor on  shortest ancestral path
+	 * @return The synset ancestor on the shortest ancestral path between the passed nouns
 	 */
 	public String sap(String nounA, String nounB) {
 		validateNoun(nounA);
@@ -124,7 +124,7 @@ public class WordNet {
 	
 	/**
 	 * Checks that the passed noun is present in the synset
-	 * @param noun
+	 * @param noun noun to check for presence in the synset
 	 */
 	private void validateNoun(String noun) {
 		if (!isNoun(noun)) {

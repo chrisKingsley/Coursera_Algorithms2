@@ -1,4 +1,8 @@
-
+/**
+ * Modified version of BreadthFirstDirectedPaths that optimizes shortest path searches
+ * @author ckingsley
+ *
+ */
 public class DeluxeBFS {
 	private static final int INFINITY = Integer.MAX_VALUE;
 	private boolean[] marked;
@@ -28,8 +32,7 @@ public class DeluxeBFS {
      * to every other vertex in graph {@code G}.
      * @param G the digraph
      * @param sources the source vertices
-     * @throws IllegalArgumentException unless each vertex {@code v} in
-     *         {@code sources} satisfies {@code 0 <= v < V}
+     * @throws IllegalArgumentException unless each vertex {@code v} in {@code sources} satisfies {@code 0 <= v < V}
      */
 	public DeluxeBFS(Digraph G, Iterable<Integer> sources) {
         marked = new boolean[G.V()];
@@ -86,7 +89,12 @@ public class DeluxeBFS {
         return distTo[v];
     }
 	
- // BFS from single source
+    
+    /**
+     * BFS from single source
+     * @param G digraph over which the search will be performed
+     * @param s source vertex
+     */
     private void bfs(Digraph G, int s) {
         Queue<Integer> q = new Queue<Integer>();
         marked[s] = true;
@@ -105,7 +113,12 @@ public class DeluxeBFS {
         }
     }
     
-	// BFS from multiple sources
+	
+    /**
+     * BFS from multiple sources
+     * @param G digraph over which the search will be performed
+     * @param sources Iterable collection of source vertices
+     */
     private void bfs(Digraph G, Iterable<Integer> sources) {
         Queue<Integer> q = new Queue<Integer>();
         for (int s : sources) {
@@ -126,14 +139,22 @@ public class DeluxeBFS {
         }
     }
     
-    // throw an IllegalArgumentException unless {@code 0 <= v < V}
+    
+    /**
+	 * Throws an IllegalArgumentException unless {@code 0 <= v < V}
+	 * @param v vertex number to check
+	 */
     private void validateVertex(int v) {
         int V = marked.length;
         if (v < 0 || v >= V)
             throw new IllegalArgumentException("vertex " + v + " is not between 0 and " + (V-1));
     }
     
-    // throw an IllegalArgumentException unless {@code 0 <= v < V}
+    
+    /**
+	 * Throws an IllegalArgumentException unless all v in vertices satisfy {@code 0 <= v < V}
+	 * @param vertices set of vertices to check
+	 */
     private void validateVertices(Iterable<Integer> vertices) {
         if (vertices == null) {
             throw new IllegalArgumentException("argument is null");

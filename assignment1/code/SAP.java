@@ -1,10 +1,11 @@
 /**
- * Class that implements shortest ancestral path on a digraph
+ * Class that implements shortest ancestral path on a digraph.
+ * This class is immutable - properties cannnot be modified after instantiation.
  * @author ckingsley
  *
  */
 public class SAP {
-	Digraph G;
+	private Digraph G;
 	
 	
 	/**
@@ -16,8 +17,9 @@ public class SAP {
 		if (dc.hasCycle()) {
 			throw new IllegalArgumentException("Passed directed graph has cycle(s)");
 		}
+		//TODO any other checks to make to the graph?
 		
-		// save a copy of the passed Digraph as an instance variable for immutability
+		// save a copy of the passed Digraph as an instance variable to ensure immutability of the SAP class
 		this.G = new Digraph(G);
 	}
 
@@ -136,14 +138,20 @@ public class SAP {
 	}
 	
 	
-	// throw an IllegalArgumentException unless {@code 0 <= v < V}
+	/**
+	 * Throws an IllegalArgumentException unless {@code 0 <= v < V}
+	 * @param v vertex number to check
+	 */
     private void validateVertex(int v) {
         if (v < 0 || v >= G.V())
             throw new IllegalArgumentException("vertex " + v + " is not between 0 and " + (G.V()-1));
     }
     
     
-    // throw an IllegalArgumentException unless {@code 0 <= v < V}
+    /**
+	 * Throws an IllegalArgumentException unless all v in vertices satisfy {@code 0 <= v < V}
+	 * @param vertices set of vertices to check
+	 */
     private void validateVertices(Iterable<Integer> vertices) {
         if (vertices == null) {
             throw new IllegalArgumentException("argument is null");

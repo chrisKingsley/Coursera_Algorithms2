@@ -1,6 +1,12 @@
-
+/**
+ * Class to determine an outcast word from a collection of words, based on distances in a WordNet.
+ * Outcast words have the longest sum of shortest ancestral paths between them and the other words in the collection.
+ * This class is immutable - properties cannot be modified after instantiation.
+ * @author ckingsley
+ *
+ */
 public class Outcast {
-	WordNet wordNet;
+	private WordNet wordNet;
 	
 	/**
 	 * Constructor
@@ -14,7 +20,7 @@ public class Outcast {
 	/**
 	 * Given an array of WordNet nouns, return an outcast
 	 * @param nouns array of WordNet nouns
-	 * @return an outcast
+	 * @return an outcast word that has the largest sum of shortest ancestral paths to the other words
 	 */
 	public String outcast(String[] nouns) {
 		int maxDist = Integer.MIN_VALUE;
