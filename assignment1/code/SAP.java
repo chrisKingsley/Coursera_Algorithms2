@@ -17,7 +17,8 @@ public class SAP {
 			throw new IllegalArgumentException("Passed directed graph has cycle(s)");
 		}
 		
-		this.G = G;
+		// save a copy of the passed Digraph as an instance variable for immutability
+		this.G = new Digraph(G);
 	}
 
 	
@@ -161,11 +162,11 @@ public class SAP {
 	 * @param args command line args
 	 */
 	public static void main(String[] args) {
-		In in = new In("C:/My_Stuff/Courses/Coursera_Algorithms2/assignment1/wordnet/digraph1.txt");
+		In in = new In("wordnet/digraph1.txt");
 	    Digraph G = new Digraph(in);
 	    SAP sap = new SAP(G);
 	    
-        int test[][] = {{3,11}, {9,12}, {7,2}, {1,6}};
+        int test[][] = {{3,11}, {9,12}, {7,2}, {1,6}, {7,0}};
 	    for (int i = 0; i < test.length; i++) {
 	    	int length   = sap.length(test[i][0], test[i][1]);
 	        int ancestor = sap.ancestor(test[i][0], test[i][1]);

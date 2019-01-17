@@ -1,13 +1,13 @@
 
 public class Outcast {
-	
+	WordNet wordNet;
 	
 	/**
 	 * Constructor
 	 * @param wordnet WordNet object
 	 */
 	public Outcast(WordNet wordnet) {
-		
+		this.wordNet = wordnet;
 	}
 
 	
@@ -17,8 +17,25 @@ public class Outcast {
 	 * @return an outcast
 	 */
 	public String outcast(String[] nouns) {
+		int maxDist = Integer.MIN_VALUE;
+		String outcast = "No outcast found";
 		
-		return "";
+		for (int i = 0; i < nouns.length; i++) {
+			int distSum = 0;
+			
+			for (int j = 0; j < nouns.length; j++) {
+				if (i != j) {
+					distSum += wordNet.distance(nouns[i], nouns[j]);
+				}
+			}
+			
+			if (distSum > maxDist) {
+				maxDist = distSum;
+				outcast = nouns[i];
+			}
+		}
+		
+		return outcast;
 	}
 
 	
@@ -27,13 +44,13 @@ public class Outcast {
 	 * @param args command line args
 	 */
 	public static void main(String[] args) {
-		WordNet wordnet = new WordNet(args[0], args[1]);
+		WordNet wordnet = new WordNet("wordnet/synsets.txt", "wordnet/hypernyms.txt");
 	    Outcast outcast = new Outcast(wordnet);
 	    
-	    for (int t = 2; t < args.length; t++) {
-	        String[] nouns = In.readStrings(args[t]);
-	        StdOut.println(args[t] + ": " + outcast.outcast(nouns));
+	    String[] outcastFiles = {"wordnet/outcast5.txt","wordnet/outcast8.txt","wordnet/outcast11.txt",};
+	    for (String outcastFile : outcastFiles) {
+	        String[] nouns = new In(outcastFile).readAllStrings();
+	        StdOut.println(outcastFile + ": " + outcast.outcast(nouns));
 	    }
 	}
-
 }

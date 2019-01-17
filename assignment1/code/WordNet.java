@@ -7,6 +7,7 @@
 public class WordNet {
 	
 	private ST<String, Queue<Integer>> nouns;
+	private ST<Integer, String> indexedSynsets;
 	private Digraph hypernyms;
 	
 	/**
@@ -15,13 +16,19 @@ public class WordNet {
 	 * @param hypernymFile path to hypernyms file
 	 */
 	public WordNet(String synsetFile, String hypernymFile) {
-		// load synsets
+		// load synsets from synsetFile
 		nouns = new ST<String, Queue<Integer>>();
+		indexedSynsets = new ST<Integer, String>();
+		
 		In inSynset = new In(synsetFile);
 		while (inSynset.hasNextLine()) {
 			String[] tokens = inSynset.readLine().split(",");
 			int id = Integer.parseInt(tokens[0]);
 			
+			// add id -> synset mapping to indexedSynsets
+			indexedSynsets.put(id, tokens[1]);
+			
+			// add noun -> id mapping to hypernyms
 			String[] synonyms = tokens[1].split(" ");
 			for (String synonym : synonyms) {
 				Queue<Integer> synIds;
@@ -36,7 +43,8 @@ public class WordNet {
 		}
 		inSynset.close();
 		
-		// load hypernyms
+		
+		// load hypernyms from hypernymFile into Digraph
 		hypernyms = new Digraph(nouns.size());
 		In inHyper = new In(hypernymFile);
 		
@@ -79,6 +87,9 @@ public class WordNet {
 	 * @return
 	 */
 	public int distance(String nounA, String nounB) {
+		validateNoun(nounA);
+		validateNoun(nounB);
+		
 		Queue<Integer> synsetA = nouns.get(nounA);
 		Queue<Integer> synsetB = nouns.get(nounB);
 		
@@ -95,8 +106,30 @@ public class WordNet {
 	 * @return
 	 */
 	public String sap(String nounA, String nounB) {
+		validateNoun(nounA);
+		validateNoun(nounB);
 		
-		return "hello";
+		Queue<Integer> synsetA = nouns.get(nounA);
+		Queue<Integer> synsetB = nouns.get(nounB);
+		
+		SAP sap = new SAP(hypernyms);
+		
+		int ancestor = sap.ancestor(synsetA, synsetB);
+		if (indexedSynsets.contains(ancestor)) {
+			return indexedSynsets.get(ancestor);
+		}
+		return "No ancestor Found";
+	}
+	
+	
+	/**
+	 * Checks that the passed noun is present in the synset
+	 * @param noun
+	 */
+	private void validateNoun(String noun) {
+		if (!isNoun(noun)) {
+			throw new IllegalArgumentException("\'" + noun + "\' is not a valid noun in the synset");
+		}
 	}
 
 	 
@@ -105,6 +138,12 @@ public class WordNet {
 	 * @param args command line args
 	 */
 	public static void main(String[] args) {
-		
+		WordNet wordNet = new WordNet("wordnet/synsets.txt", "wordnet/hypernyms.txt");
+		System.out.println(wordNet.sap("individual","edible_fruit"));
+		System.out.println(wordNet.distance("individual","edible_fruit"));
+		System.out.println(wordNet.distance("municipality", "region"));
+		System.out.println(wordNet.distance("Black_Plague", "black_marlin"));
+		System.out.println(wordNet.distance("American_water_spaniel", "histology"));
+		System.out.println(wordNet.distance("Brown_Swiss", "barrel_roll"));
 	}
 }
