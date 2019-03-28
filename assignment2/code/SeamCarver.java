@@ -7,8 +7,12 @@ import java.awt.Color;
  */
 public class SeamCarver {
 	private static final double EDGE_ENERGY = 195075.0;
+	private static final int VERTICAL = 0, HORIZONTAL = 1;
 	private Picture pict;
-	private double shortestPath;
+	private int[][] edgeTo;
+	private double[][] energy;
+	private double[][][] distTo;
+	
 	
 	/**
 	 * Constructor
@@ -16,6 +20,23 @@ public class SeamCarver {
 	 */
 	public SeamCarver(Picture pict) {
 		this.pict = new Picture(pict);
+		
+		// initialize energy matrix
+		energy = new double[ pict.width() ][ pict.height() ];
+		for (int i = 0; i < pict.width(); i++) {
+			for (int j = 0; j < pict.width(); j++) {
+				energy[i][j] = energy(i,j);
+			}
+		}
+		
+		// initialize distTo and edgeTo
+		distTo = new double[2][ pict.width() ][ pict.height() ];
+		edgeTo = new int[2][];
+		edgeTo[ VERTICAL ] = new int[ pict.height() ];
+		edgeTo[ HORIZONTAL ] = new int[ pict.width() ];
+		
+		relaxEdges(VERTICAL);
+		relaxEdges(HORIZONTAL);
 	}
 	
 	/**
@@ -42,6 +63,7 @@ public class SeamCarver {
 		return pict.height();
 	}
 	
+	
 	/**
 	 * Returns the RGB energy difference between the two passed pixels
 	 * @param pix1 first pixel to use to compute energy difference
@@ -52,6 +74,7 @@ public class SeamCarver {
 		return (pix1.getRed() - pix2.getRed())^2 + (pix1.getGreen() - pix2.getGreen())^2 + 
 				(pix1.getBlue() - pix2.getBlue())^2;
 	}
+	
 	
 	/**
 	 * Make sure pixel positions are in bounds with respect to the image dimensions
@@ -64,17 +87,27 @@ public class SeamCarver {
 		}
 	}
 	
+	
 	/**
 	 * return energy gradient of pixel at column x and row y
 	 * @return energy gradient of pixel at column x and row y
 	 */
-	public double energy(int x, int y) {
+	private double energy(int x, int y) {
 		validatePoints(x, y);
 		if (x == 0 || x == pict.width() - 1 || y == 0 || y == pict.height() - 1)
 			return EDGE_ENERGY;
 		
 		return energyDifference(pict.get(x + 1, y), pict.get(x - 1, y)) +
 				energyDifference(pict.get(x,  y - 1), pict.get(x,  y + 1));
+	}
+	
+	
+	/**
+	 * Find the shortest paths tree for either dimension in the image
+	 * @param dimension the dimension to relax edges along - HORIZONTAL or VERTICAL
+	 */
+	private void relaxEdges(int dimension) {
+		
 	}
 	
 	/**
@@ -84,8 +117,25 @@ public class SeamCarver {
 	public int[] findHorizontalSeam() {
 		int[] hSeam = new int[ pict.width() ];
 		
+		// find minimum distance on right edge
+		double minDist = Double.POSITIVE_INFINITY;
+		int startIdx = 0;
+		for (int i = 0; i < pict.height(); i++) {
+			if (distTo[ HORIZONTAL ][i][ pict.width() - 1] < minDist) {
+				minDist = distTo[ HORIZONTAL ][i][ pict.width() - 1];
+				startIdx = i;
+			}
+		}
+		
+		// populate hSeam array
+		hSeam[ pict.width() - 1] = startIdx;
+		for (int i = pict.width() - 2; i >= 0; i--) {
+			hSeam[i] = edgeTo[ HORIZONTAL ][ hSeam[i + 1] ];
+		}
+		
 		return hSeam;
 	}
+	
 	
 	/**
 	 * return sequence of indices for vertical seam
@@ -94,8 +144,25 @@ public class SeamCarver {
 	public int[] findVerticalSeam() {
 		int[] vSeam = new int[ pict.height() ];
 		
+		// find minimum distance on bottom edge
+		double minDist = Double.POSITIVE_INFINITY;
+		int startIdx = 0;
+		for (int i = 0; i < pict.width(); i++) {
+			if (distTo[ VERTICAL ][ pict.height() - 1 ][i] < minDist) {
+				minDist = distTo[ VERTICAL ][ pict.height() - 1 ][i];
+				startIdx = i;
+			}
+		}
+		
+		// populate vSeam array
+		vSeam[ pict.height() - 1 ] = startIdx;
+		for (int i = pict.height() - 2; i >= 0; i--) {
+			vSeam[i] = edgeTo[ VERTICAL ][ vSeam[i + 1] ];
+		}
+		
 		return vSeam;
 	}
+	
 	
 	/**
 	 * remove horizontal seam from picture
@@ -117,6 +184,7 @@ public class SeamCarver {
 		
 		pict = newPict;
 	}
+	
 	
 	/**
 	 * remove vertical seam from picture
