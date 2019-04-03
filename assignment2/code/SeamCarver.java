@@ -20,14 +20,7 @@ public class SeamCarver {
 	 */
 	public SeamCarver(Picture pict) {
 		this.pict = new Picture(pict);
-		
-		// initialize energy matrix
-		energy = new double[ pict.width() ][ pict.height() ];
-		for (int i = 0; i < pict.width(); i++) {
-			for (int j = 0; j < pict.width(); j++) {
-				energy[i][j] = energy(i,j);
-			}
-		}
+		calculateEnergyMatrix();
 		
 		// initialize distTo and edgeTo
 		distTo = new double[2][ pict.width() ][ pict.height() ];
@@ -71,8 +64,8 @@ public class SeamCarver {
 	 * @return the RGB energy difference between the two pixels
 	 */
 	private double energyDifference(Color pix1, Color pix2) {
-		return (pix1.getRed() - pix2.getRed())^2 + (pix1.getGreen() - pix2.getGreen())^2 + 
-				(pix1.getBlue() - pix2.getBlue())^2;
+		return Math.pow(pix1.getRed() - pix2.getRed(), 2) + Math.pow(pix1.getGreen() - pix2.getGreen(), 2) + 
+				Math.pow(pix1.getBlue() - pix2.getBlue(), 2);
 	}
 	
 	
@@ -92,7 +85,7 @@ public class SeamCarver {
 	 * return energy gradient of pixel at column x and row y
 	 * @return energy gradient of pixel at column x and row y
 	 */
-	private double energy(int x, int y) {
+	public double energy(int x, int y) {
 		validatePoints(x, y);
 		if (x == 0 || x == pict.width() - 1 || y == 0 || y == pict.height() - 1)
 			return EDGE_ENERGY;
@@ -103,11 +96,42 @@ public class SeamCarver {
 	
 	
 	/**
+	 * Calculate the energy matrix for all pixels in the picture
+	 */
+	private void calculateEnergyMatrix() {
+		// initialize energy matrix
+		energy = new double[ pict.width() ][ pict.height() ];
+		for (int i = 0; i < pict.width(); i++) {
+			for (int j = 0; j < pict.height(); j++) {
+				energy[i][j] = energy(i,j);
+			}
+		}	
+	}
+	
+	
+	/**
 	 * Find the shortest paths tree for either dimension in the image
 	 * @param dimension the dimension to relax edges along - HORIZONTAL or VERTICAL
 	 */
 	private void relaxEdges(int dimension) {
-		
+		if (dimension == HORIZONTAL) {
+			
+		} else if (dimension == VERTICAL) {
+			for (int i = 0; i < pict.width(); i++) {
+				for (int j = 0; j < pict.height(); j++) {
+					double tempMin = Double.MAX_VALUE;
+					
+					for (int k = -1; k <= 1; k++) {
+						if (j + k >= 0 && j + k < pict.width()) {
+							if (tempMin > energy[i][j]) {
+								tempMin = energy[i][j];
+							}
+						}
+					}
+					distTo[ VERTICAL ][i][j] = tempMin;
+				}
+			}
+		}
 	}
 	
 	/**
@@ -166,7 +190,6 @@ public class SeamCarver {
 	
 	/**
 	 * remove horizontal seam from picture
-	 * @return
 	 */
 	public void removeHorizontalSeam(int[] a) {
 		Picture newPict = new Picture(pict.width(), pict.height() - 1);
@@ -183,12 +206,12 @@ public class SeamCarver {
 		}
 		
 		pict = newPict;
+		calculateEnergyMatrix();
 	}
 	
 	
 	/**
 	 * remove vertical seam from picture
-	 * @return
 	 */
 	public void removeVerticalSeam(int[] a) {
 		Picture newPict = new Picture(pict.width() - 1, pict.height());
@@ -205,6 +228,28 @@ public class SeamCarver {
 		}
 		
 		pict = newPict;
+		calculateEnergyMatrix();
+	}
+	
+	
+	/**
+	 * Main method for debugging test cases
+	 * @param args cmd line arguments
+	 */
+	public static void main(String[] args) {
+		String infile = "../seam/6x5.png";
+		Picture pict = new Picture(infile);
+		SeamCarver seam = new SeamCarver(pict);
+		PrintEnergy.main(new String[] {infile});
+//		ShowEnergy.main(new String[] {"../seam/chameleon.png"});
+		
+		for (int row = 0; row < pict.height(); row++) {
+			for (int col = 0; col < pict.width(); col++) {
+				Color pix = pict.get(col, row);
+				System.out.printf("(%03d,%03d,%03d) ", pix.getRed(), pix.getGreen(), pix.getBlue());
+			}
+			System.out.println();
+		}
 	}
 
 }
