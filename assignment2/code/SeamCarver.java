@@ -27,9 +27,6 @@ public class SeamCarver {
 		edgeTo = new int[2][];
 		edgeTo[ VERTICAL ] = new int[ pict.height() ];
 		edgeTo[ HORIZONTAL ] = new int[ pict.width() ];
-		
-		relaxEdges(VERTICAL);
-		relaxEdges(HORIZONTAL);
 	}
 	
 	/**
@@ -82,16 +79,22 @@ public class SeamCarver {
 	
 	
 	/**
-	 * return energy gradient of pixel at column x and row y
-	 * @return energy gradient of pixel at column x and row y
+	 * 
+	 * 
 	 */
-	public double energy(int x, int y) {
-		validatePoints(x, y);
-		if (x == 0 || x == pict.width() - 1 || y == 0 || y == pict.height() - 1)
+	/**
+	 * return energy gradient of pixel at column col and row row
+	 * @param col
+	 * @param y
+	 * @return energy gradient of pixel at column col and row row
+	 */
+	public double energy(int col, int row) {
+		validatePoints(col, row);
+		if (col == 0 || col == pict.width() - 1 || row == 0 || row == pict.height() - 1)
 			return EDGE_ENERGY;
 		
-		return energyDifference(pict.get(x + 1, y), pict.get(x - 1, y)) +
-				energyDifference(pict.get(x,  y - 1), pict.get(x,  y + 1));
+		return energyDifference(pict.get(col + 1, row), pict.get(col - 1, row)) +
+				energyDifference(pict.get(col,  row - 1), pict.get(col,  row + 1));
 	}
 	
 	
@@ -110,28 +113,29 @@ public class SeamCarver {
 	
 	
 	/**
-	 * Find the shortest paths tree for either dimension in the image
-	 * @param dimension the dimension to relax edges along - HORIZONTAL or VERTICAL
+	 * Relax the graph edges along vertical seams in the image
 	 */
-	private void relaxEdges(int dimension) {
-		if (dimension == HORIZONTAL) {
-			
-		} else if (dimension == VERTICAL) {
-			for (int i = 0; i < pict.width(); i++) {
-				for (int j = 0; j < pict.height(); j++) {
-					double tempMin = Double.MAX_VALUE;
-					
-					for (int k = -1; k <= 1; k++) {
-						if (j + k >= 0 && j + k < pict.width()) {
-							if (tempMin > energy[i][j]) {
-								tempMin = energy[i][j];
-							}
-						}
+	private void relaxEdgesVerticalSeam() {
+		for (int row = 0; row < pict.height(); row++) {
+			for (int col = 0; col < pict.width(); col++) {
+				double minDist = Double.MAX_VALUE;
+				int distIdx = 0;
+				
+				for (int k = -1; k <= 1; k++) {
+					if (row > 0 && col + k >= 0 && col + k < pict.width() && 
+							minDist > distTo[ VERTICAL ][col + k][row - 1]) {
+						minDist = distTo[ VERTICAL ][col + k][row - 1];
+						distIdx = col + k;
 					}
-					distTo[ VERTICAL ][i][j] = tempMin;
 				}
+				distTo[ VERTICAL ][col][row] = energy[col][row] + (row == 0 ? 0 : minDist);
+				edgeTo[ VERTICAL ][row] = distIdx;
 			}
 		}
+	}
+	
+	private void relaxEdgesHorizontalSeam() {
+		
 	}
 	
 	/**
@@ -140,6 +144,7 @@ public class SeamCarver {
 	 */
 	public int[] findHorizontalSeam() {
 		int[] hSeam = new int[ pict.width() ];
+		relaxEdgesHorizontalSeam();
 		
 		// find minimum distance on right edge
 		double minDist = Double.POSITIVE_INFINITY;
@@ -167,21 +172,22 @@ public class SeamCarver {
 	 */
 	public int[] findVerticalSeam() {
 		int[] vSeam = new int[ pict.height() ];
+		relaxEdgesVerticalSeam();
 		
 		// find minimum distance on bottom edge
 		double minDist = Double.POSITIVE_INFINITY;
 		int startIdx = 0;
-		for (int i = 0; i < pict.width(); i++) {
-			if (distTo[ VERTICAL ][ pict.height() - 1 ][i] < minDist) {
-				minDist = distTo[ VERTICAL ][ pict.height() - 1 ][i];
-				startIdx = i;
+		for (int col = 0; col < pict.width(); col++) {
+			if (distTo[ VERTICAL ][col][ pict.height() - 1 ] < minDist) {
+				minDist = distTo[ VERTICAL ][col][ pict.height() - 1 ];
+				startIdx = col;
 			}
 		}
 		
 		// populate vSeam array
 		vSeam[ pict.height() - 1 ] = startIdx;
-		for (int i = pict.height() - 2; i >= 0; i--) {
-			vSeam[i] = edgeTo[ VERTICAL ][ vSeam[i + 1] ];
+		for (int row = pict.height() - 2; row >= 0; row--) {
+			vSeam[row] = edgeTo[ VERTICAL ][ vSeam[row + 1] ];
 		}
 		
 		return vSeam;
@@ -215,6 +221,7 @@ public class SeamCarver {
 	 */
 	public void removeVerticalSeam(int[] a) {
 		Picture newPict = new Picture(pict.width() - 1, pict.height());
+		relaxEdgesVerticalSeam();
 		
 		for(int row = 0; row < pict.height(); row++) {
 			int d = 0;
@@ -237,18 +244,25 @@ public class SeamCarver {
 	 * @param args cmd line arguments
 	 */
 	public static void main(String[] args) {
-		String infile = "../seam/6x5.png";
+		String infile = "../testing_files/6x5.png";
 		Picture pict = new Picture(infile);
 		SeamCarver seam = new SeamCarver(pict);
+		int[] vertSeam = seam.findVerticalSeam();
+		
 		PrintEnergy.main(new String[] {infile});
-//		ShowEnergy.main(new String[] {"../seam/chameleon.png"});
+//		ShowEnergy.main(new String[] {"../testing_files/HJocean.png"});
 		
 		for (int row = 0; row < pict.height(); row++) {
 			for (int col = 0; col < pict.width(); col++) {
-				Color pix = pict.get(col, row);
-				System.out.printf("(%03d,%03d,%03d) ", pix.getRed(), pix.getGreen(), pix.getBlue());
+//				Color pix = pict.get(col, row);
+//				System.out.printf("(%03d,%03d,%03d) ", pix.getRed(), pix.getGreen(), pix.getBlue());
+				System.out.print(seam.distTo[VERTICAL][col][row] + " ");
 			}
 			System.out.println();
+		}
+		
+		for (int i = 0; i < vertSeam.length; i++) {
+			System.out.println(vertSeam[i] + " " + seam.edgeTo[VERTICAL][i]);
 		}
 	}
 
