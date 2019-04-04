@@ -116,20 +116,27 @@ public class SeamCarver {
 	 * Relax the graph edges along vertical seams in the image
 	 */
 	private void relaxEdgesVerticalSeam() {
-		for (int row = 0; row < pict.height(); row++) {
+		// initialize distTo values in first row
+		for (int col = 0; col < pict.width(); col++) {
+			distTo[ VERTICAL ][col][0] = energy[col][0];
+		}
+		
+		// populate distTo and edgeTo matrices
+		for (int row = 1; row < pict.height(); row++) {
 			for (int col = 0; col < pict.width(); col++) {
-				double minDist = Double.MAX_VALUE;
-				int distIdx = 0;
+				distTo[VERTICAL][col][row] = Double.MAX_VALUE;
 				
+				// choose best distance from upper pixels
 				for (int k = -1; k <= 1; k++) {
-					if (row > 0 && col + k >= 0 && col + k < pict.width() && 
-							minDist > distTo[ VERTICAL ][col + k][row - 1]) {
-						minDist = distTo[ VERTICAL ][col + k][row - 1];
-						distIdx = col + k;
+					if (col + k >= 0 && col + k < pict.width()) {
+						double newDist = distTo[VERTICAL][col + k][row - 1] + energy[col][row];
+						System.out.printf("row:%d col:%d edgeTo:%d newDist:%f oldDist:%f\n", row, col, edgeTo[ VERTICAL ][row], newDist, distTo[ VERTICAL ][col][row]);
+						if (newDist < distTo[ VERTICAL ][col][row]) {
+							distTo[ VERTICAL ][col][row] = newDist;
+							edgeTo[ VERTICAL ][row] = col + k;
+						}
 					}
 				}
-				distTo[ VERTICAL ][col][row] = energy[col][row] + (row == 0 ? 0 : minDist);
-				edgeTo[ VERTICAL ][row] = distIdx;
 			}
 		}
 	}
@@ -176,18 +183,23 @@ public class SeamCarver {
 		
 		// find minimum distance on bottom edge
 		double minDist = Double.POSITIVE_INFINITY;
-		int startIdx = 0;
 		for (int col = 0; col < pict.width(); col++) {
 			if (distTo[ VERTICAL ][col][ pict.height() - 1 ] < minDist) {
 				minDist = distTo[ VERTICAL ][col][ pict.height() - 1 ];
-				startIdx = col;
+				vSeam[ pict.height() - 1 ] = col;
 			}
 		}
 		
 		// populate vSeam array
-		vSeam[ pict.height() - 1 ] = startIdx;
-		for (int row = pict.height() - 2; row >= 0; row--) {
-			vSeam[row] = edgeTo[ VERTICAL ][ vSeam[row + 1] ];
+		for (int row = pict.height() - 1; row > 0; row--) {
+			minDist = Double.POSITIVE_INFINITY;
+			for (int k = -1; k <= 1; k++) {
+				int col = vSeam[row] + k;
+				System.out.printf("row:%d col:%d newDist:%f oldDist:%f\n", row, col, distTo[VERTICAL][col][row - 1], minDist);
+				if (col >= 0 && col < pict.width() && distTo[VERTICAL][col][row - 1] < minDist) {
+					vSeam[row - 1] = col;
+				}
+			}
 		}
 		
 		return vSeam;
