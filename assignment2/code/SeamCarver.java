@@ -7,11 +7,9 @@ import java.awt.Color;
  */
 public class SeamCarver {
 	private static final double EDGE_ENERGY = 195075.0;
-	private static final int VERTICAL = 0, HORIZONTAL = 1;
 	private Picture pict;
-	private int[][] edgeTo;
 	private double[][] energy;
-	private double[][][] distTo;
+	private double[][] distTo;
 	
 	
 	/**
@@ -21,12 +19,6 @@ public class SeamCarver {
 	public SeamCarver(Picture pict) {
 		this.pict = new Picture(pict);
 		calculateEnergyMatrix();
-		
-		// initialize distTo and edgeTo
-		distTo = new double[2][ pict.width() ][ pict.height() ];
-		edgeTo = new int[2][];
-		edgeTo[ VERTICAL ] = new int[ pict.height() ];
-		edgeTo[ HORIZONTAL ] = new int[ pict.width() ];
 	}
 	
 	/**
@@ -53,6 +45,20 @@ public class SeamCarver {
 		return pict.height();
 	}
 	
+	/**
+	 * return energy gradient of pixel at column col and row row
+	 * @param col the pixel column (x coordinate)
+	 * @param row the pixel row (y coordinate)
+	 * @return energy gradient of pixel at column col and row row
+	 */
+	public double energy(int col, int row) {
+		if (col < 0 || col >= pict.width() || row < 0 || row >= pict.height()) {
+			throw new IndexOutOfBoundsException("Pixel positions (" +
+					col + "," + row + ") are out of bounds");
+		}
+		return energy[col][row];
+	}
+	
 	
 	/**
 	 * Returns the RGB energy difference between the two passed pixels
@@ -67,73 +73,46 @@ public class SeamCarver {
 	
 	
 	/**
-	 * Make sure pixel positions are in bounds with respect to the image dimensions
-	 * @param x x-coordinate of pixel
-	 * @param y y-coordinate of pixel
-	 */
-	private void validatePoints(int x, int y) {
-		if (x < 0 || x >= pict.width() || y < 0 || y >= pict.height()) {
-			throw new IndexOutOfBoundsException("Pixel positions (" + x + "," + y + ") are out of bounds");
-		}
-	}
-	
-	
-	/**
-	 * 
-	 * 
-	 */
-	/**
-	 * return energy gradient of pixel at column col and row row
-	 * @param col
-	 * @param y
-	 * @return energy gradient of pixel at column col and row row
-	 */
-	public double energy(int col, int row) {
-		validatePoints(col, row);
-		if (col == 0 || col == pict.width() - 1 || row == 0 || row == pict.height() - 1)
-			return EDGE_ENERGY;
-		
-		return energyDifference(pict.get(col + 1, row), pict.get(col - 1, row)) +
-				energyDifference(pict.get(col,  row - 1), pict.get(col,  row + 1));
-	}
-	
-	
-	/**
 	 * Calculate the energy matrix for all pixels in the picture
 	 */
 	private void calculateEnergyMatrix() {
 		// initialize energy matrix
 		energy = new double[ pict.width() ][ pict.height() ];
-		for (int i = 0; i < pict.width(); i++) {
-			for (int j = 0; j < pict.height(); j++) {
-				energy[i][j] = energy(i,j);
+		for (int col = 0; col < pict.width(); col++) {
+			for (int row = 0; row < pict.height(); row++) {
+				if (col == 0 || col == pict.width() - 1 || row == 0 || row == pict.height() - 1) {
+					energy[col][row] = EDGE_ENERGY;
+				} else {
+					energy[col][row] = energyDifference(pict.get(col + 1, row), pict.get(col - 1, row)) +
+							energyDifference(pict.get(col,  row - 1), pict.get(col,  row + 1));
+				}
 			}
 		}	
 	}
 	
 	
 	/**
-	 * Relax the graph edges along vertical seams in the image
+	 * Relax the graph edges along the vertical axis in the image
 	 */
 	private void relaxEdgesVerticalSeam() {
+		distTo = new double[ pict.width() ][ pict.height() ];
+		
 		// initialize distTo values in first row
 		for (int col = 0; col < pict.width(); col++) {
-			distTo[ VERTICAL ][col][0] = energy[col][0];
+			distTo[col][0] = energy[col][0];
 		}
 		
-		// populate distTo and edgeTo matrices
+		// populate distTo matrix
 		for (int row = 1; row < pict.height(); row++) {
 			for (int col = 0; col < pict.width(); col++) {
-				distTo[VERTICAL][col][row] = Double.MAX_VALUE;
+				distTo[col][row] = Double.MAX_VALUE;
 				
 				// choose best distance from upper pixels
 				for (int k = -1; k <= 1; k++) {
 					if (col + k >= 0 && col + k < pict.width()) {
-						double newDist = distTo[VERTICAL][col + k][row - 1] + energy[col][row];
-						System.out.printf("row:%d col:%d edgeTo:%d newDist:%f oldDist:%f\n", row, col, edgeTo[ VERTICAL ][row], newDist, distTo[ VERTICAL ][col][row]);
-						if (newDist < distTo[ VERTICAL ][col][row]) {
-							distTo[ VERTICAL ][col][row] = newDist;
-							edgeTo[ VERTICAL ][row] = col + k;
+						double newDist = distTo[col + k][row - 1] + energy[col][row];
+						if (newDist < distTo[col][row]) {
+							distTo[col][row] = newDist;
 						}
 					}
 				}
@@ -141,9 +120,36 @@ public class SeamCarver {
 		}
 	}
 	
+	
+	/**
+	 * Relax the graph edges along the horizontal axis in the image
+	 */
 	private void relaxEdgesHorizontalSeam() {
+		distTo = new double[ pict.width() ][ pict.height() ];
 		
+		// initialize distTo values in first column
+		for (int row = 0; row < pict.height(); row++) {
+			distTo[0][row] = energy[0][row];
+		}
+		
+		// populate distTo matrix
+		for (int col = 1; col < pict.width(); col++) {
+			for (int row = 0; row < pict.height(); row++) {
+				distTo[col][row] = Double.MAX_VALUE;
+				
+				// choose best distance from left pixels
+				for (int k = -1; k <= 1; k++) {
+					if (row + k >= 0 && row + k < pict.height()) {
+						double newDist = distTo[col - 1][row + k] + energy[col][row];
+						if (newDist < distTo[col][row]) {
+							distTo[col][row] = newDist;
+						}
+					}
+				}
+			}
+		}
 	}
+	
 	
 	/**
 	 * return sequence of indices for horizontal seam
@@ -155,18 +161,25 @@ public class SeamCarver {
 		
 		// find minimum distance on right edge
 		double minDist = Double.POSITIVE_INFINITY;
-		int startIdx = 0;
-		for (int i = 0; i < pict.height(); i++) {
-			if (distTo[ HORIZONTAL ][i][ pict.width() - 1] < minDist) {
-				minDist = distTo[ HORIZONTAL ][i][ pict.width() - 1];
-				startIdx = i;
+		for (int row = 0; row < pict.height(); row++) {
+			if (distTo[pict.width() - 1][row] < minDist) {
+				minDist = distTo[pict.width() - 1][row];
+				hSeam[ pict.width() - 1 ] = row;
 			}
 		}
-		
+//		System.out.println("Minimum horizontal seam distance: " +
+//				distTo[ pict.width() - 1 ][ hSeam[ pict.width() - 1 ] ]);
+				
 		// populate hSeam array
-		hSeam[ pict.width() - 1] = startIdx;
-		for (int i = pict.width() - 2; i >= 0; i--) {
-			hSeam[i] = edgeTo[ HORIZONTAL ][ hSeam[i + 1] ];
+		for (int col = pict.width() - 1; col > 0; col--) {
+			minDist = Double.POSITIVE_INFINITY;
+			for (int k = -1; k <= 1; k++) {
+				int row = hSeam[col] + k;
+				if (row >= 0 && row < pict.height() && distTo[col - 1][row] < minDist) {
+					hSeam[col - 1] = row;
+					minDist = distTo[col - 1][row];
+				}
+			}
 		}
 		
 		return hSeam;
@@ -184,20 +197,22 @@ public class SeamCarver {
 		// find minimum distance on bottom edge
 		double minDist = Double.POSITIVE_INFINITY;
 		for (int col = 0; col < pict.width(); col++) {
-			if (distTo[ VERTICAL ][col][ pict.height() - 1 ] < minDist) {
-				minDist = distTo[ VERTICAL ][col][ pict.height() - 1 ];
+			if (distTo[col][ pict.height() - 1 ] < minDist) {
+				minDist = distTo[col][ pict.height() - 1 ];
 				vSeam[ pict.height() - 1 ] = col;
 			}
 		}
+//		System.out.println("Minimum vertical seam distance: " +
+//				distTo[ vSeam[ pict.height() - 1 ] ][ pict.height() - 1 ]);
 		
 		// populate vSeam array
 		for (int row = pict.height() - 1; row > 0; row--) {
 			minDist = Double.POSITIVE_INFINITY;
 			for (int k = -1; k <= 1; k++) {
 				int col = vSeam[row] + k;
-				System.out.printf("row:%d col:%d newDist:%f oldDist:%f\n", row, col, distTo[VERTICAL][col][row - 1], minDist);
-				if (col >= 0 && col < pict.width() && distTo[VERTICAL][col][row - 1] < minDist) {
+				if (col >= 0 && col < pict.width() && distTo[col][row - 1] < minDist) {
 					vSeam[row - 1] = col;
+					minDist = distTo[col][row - 1];
 				}
 			}
 		}
@@ -207,7 +222,8 @@ public class SeamCarver {
 	
 	
 	/**
-	 * remove horizontal seam from picture
+	 * Remove horizontal seam from picture
+	 * @param a array of column positions to remove
 	 */
 	public void removeHorizontalSeam(int[] a) {
 		Picture newPict = new Picture(pict.width(), pict.height() - 1);
@@ -217,9 +233,9 @@ public class SeamCarver {
 			for (int row = 0; row < pict.height(); row++) {
 				if (a[col] == row) {
 					d = 1;
-					continue;
+				} else {
+					newPict.set(col, row - d, pict.get(col, row));
 				}
-				newPict.set(row - d, col, pict.get(row, col));
 			}
 		}
 		
@@ -229,25 +245,69 @@ public class SeamCarver {
 	
 	
 	/**
-	 * remove vertical seam from picture
+	 * Remove vertical seam from picture
+	 * @param a array of column positions to remove
 	 */
 	public void removeVerticalSeam(int[] a) {
 		Picture newPict = new Picture(pict.width() - 1, pict.height());
-		relaxEdgesVerticalSeam();
 		
+		// copy pixel and energy values while eliminating the seam
 		for(int row = 0; row < pict.height(); row++) {
 			int d = 0;
 			for (int col = 0; col < pict.width(); col++) {
 				if (a[row] == col) {
 					d = 1;
-					continue;
+				} else {
+					newPict.set(col - d, row, pict.get(col, row));
 				}
-				newPict.set(row, col - d, pict.get(row, col));
 			}
 		}
 		
 		pict = newPict;
 		calculateEnergyMatrix();
+	}
+	
+	
+	/**
+	 * Print the color matrix
+	 */
+	public void printColors() {
+		System.out.printf("Colors for %d col by %d row picture\n", width(), height());
+		for (int row = 0; row < pict.height(); row++) {
+			for (int col = 0; col < pict.width(); col++) {
+				Color pix = pict.get(col, row);
+				System.out.printf("(%03d,%03d,%03d) ", pix.getRed(), pix.getGreen(), pix.getBlue());
+			}
+			System.out.println();
+		}
+	}
+	
+	
+	/**
+	 * Print the energy matrix
+	 */
+	public void printEnergies() {
+		System.out.printf("Energies for %d col by %d row picture\n", width(), height());
+		for (int row = 0; row < pict.height(); row++) {
+			for (int col = 0; col < pict.width(); col++) {
+				System.out.printf("%9.0f ", energy[col][row]);
+			}
+			System.out.println();
+		}
+	}
+	
+	
+	/**
+	 * Print the distances matrix
+	 */
+	public void printDistances() {
+		System.out.printf("Distances for %d col by %d row picture\n", width(), height());
+		for (int row = 0; row < pict.height(); row++) {
+			for (int col = 0; col < pict.width(); col++) {
+				System.out.printf("%9.0f ", distTo[col][row]);
+			}
+			System.out.println();
+		}
 	}
 	
 	
@@ -256,26 +316,31 @@ public class SeamCarver {
 	 * @param args cmd line arguments
 	 */
 	public static void main(String[] args) {
-		String infile = "../testing_files/6x5.png";
-		Picture pict = new Picture(infile);
-		SeamCarver seam = new SeamCarver(pict);
-		int[] vertSeam = seam.findVerticalSeam();
+		String infile = "../testing_files/HJocean.png";
+//		Picture pict = new Picture(infile);
+//		SeamCarver seam = new SeamCarver(pict);
+////		seam.printColors();
+////		seam.printEnergies();
+////		
+//		int[] vSeam = seam.findVerticalSeam();
+////		seam.printDistances();
+//		for (int i = 0; i < vSeam.length; i++) {
+//			System.out.println(vSeam[i]);
+//		}
+//		
+//		int[] hSeam = seam.findHorizontalSeam();
+////		seam.printDistances();
+//		for (int i = 0; i < hSeam.length; i++) {
+//			System.out.println(hSeam[i]);
+//		}
+//		seam.picture().show();
+//		for (int i = 0; i < 50; i++) {
+//			seam.removeHorizontalSeam(seam.findHorizontalSeam());
+//		}
+//		seam.picture().show();
+//		ShowSeams.main(new String[] {infile});
 		
-		PrintEnergy.main(new String[] {infile});
-//		ShowEnergy.main(new String[] {"../testing_files/HJocean.png"});
-		
-		for (int row = 0; row < pict.height(); row++) {
-			for (int col = 0; col < pict.width(); col++) {
-//				Color pix = pict.get(col, row);
-//				System.out.printf("(%03d,%03d,%03d) ", pix.getRed(), pix.getGreen(), pix.getBlue());
-				System.out.print(seam.distTo[VERTICAL][col][row] + " ");
-			}
-			System.out.println();
-		}
-		
-		for (int i = 0; i < vertSeam.length; i++) {
-			System.out.println(vertSeam[i] + " " + seam.edgeTo[VERTICAL][i]);
-		}
+		ResizeDemo.main(new String[] {infile, "50", "50"});
 	}
 
 }
