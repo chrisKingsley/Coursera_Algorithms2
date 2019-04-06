@@ -8,8 +8,7 @@ import java.awt.Color;
 public class SeamCarver {
 	private static final double EDGE_ENERGY = 195075.0;
 	private Picture pict;
-	private double[][] energy;
-	private double[][] distTo;
+	private double[][] energy, distTo;
 	
 	
 	/**
@@ -23,7 +22,7 @@ public class SeamCarver {
 	
 	/**
 	 * return current picture
-	 * @return
+	 * @return Picture object
 	 */
 	public Picture picture() {
 		return pict;
@@ -31,7 +30,7 @@ public class SeamCarver {
 	
 	/**
 	 * return width of current picture
-	 * @return
+	 * @return picture width
 	 */
 	public int width() {
 		return pict.width();
@@ -39,7 +38,7 @@ public class SeamCarver {
 	
 	/**
 	 * return height of current picture
-	 * @return
+	 * @return picture height
 	 */
 	public int height() {
 		return pict.height();
@@ -167,14 +166,11 @@ public class SeamCarver {
 				hSeam[ pict.width() - 1 ] = row;
 			}
 		}
-//		System.out.println("Minimum horizontal seam distance: " +
-//				distTo[ pict.width() - 1 ][ hSeam[ pict.width() - 1 ] ]);
 				
 		// populate hSeam array
 		for (int col = pict.width() - 1; col > 0; col--) {
 			minDist = Double.POSITIVE_INFINITY;
-			for (int k = -1; k <= 1; k++) {
-				int row = hSeam[col] + k;
+			for (int row = hSeam[col] - 1; row <= hSeam[col] + 1; row++) {
 				if (row >= 0 && row < pict.height() && distTo[col - 1][row] < minDist) {
 					hSeam[col - 1] = row;
 					minDist = distTo[col - 1][row];
@@ -202,14 +198,11 @@ public class SeamCarver {
 				vSeam[ pict.height() - 1 ] = col;
 			}
 		}
-//		System.out.println("Minimum vertical seam distance: " +
-//				distTo[ vSeam[ pict.height() - 1 ] ][ pict.height() - 1 ]);
 		
 		// populate vSeam array
 		for (int row = pict.height() - 1; row > 0; row--) {
 			minDist = Double.POSITIVE_INFINITY;
-			for (int k = -1; k <= 1; k++) {
-				int col = vSeam[row] + k;
+			for (int col = vSeam[row] - 1; col <= vSeam[row] + 1; col++) {
 				if (col >= 0 && col < pict.width() && distTo[col][row - 1] < minDist) {
 					vSeam[row - 1] = col;
 					minDist = distTo[col][row - 1];
@@ -222,10 +215,46 @@ public class SeamCarver {
 	
 	
 	/**
+	 * Checks that the image can be further resized, that the passed seam is the correct length for
+	 * the image, and that sequential values in the seam do not differ by more than 1
+	 * @param a Seam array
+	 * @param pictDimension1 Dimension of the picture (height or width) to compare against seam length
+	 * @param pictDimension2 Dimension of the picture (width or height) to check if image can be resized
+	 * @param seamType Type of seam ("horizontal" or "vertical")
+	 */
+	private void validateSeam(int[] a, int pictDimension1, int pictDimension2, String seamType) {
+		if (pictDimension2 <= 1) {
+			String msg = String.format("Cannot remove %s seam with image dimension <= 1", seamType);
+			throw new IllegalArgumentException(msg);
+		}
+		
+		if (a.length != pictDimension1) {
+			String msg = String.format("Wrong length of %s seam:%d  Should be:%d",
+					seamType, a.length, pictDimension1);
+			throw new IllegalArgumentException(msg);
+		}
+		
+		for (int i = 0; i < a.length; i++) {
+			if (a[i] < 0 || a[i] >= pictDimension2) {
+				String msg = String.format("Bad value in %s seam: seam[%d]=%d. Should be in {0..%d}",
+						seamType, i, a[i], pictDimension2 - 1);
+				throw new IllegalArgumentException(msg);
+			}
+			if (i > 0 && Math.abs(a[i - 1] - a[i]) > 1) {
+				String msg = String.format("Bad sequential %s seam increment: seam[%d]=%d seam[%d]=%d",
+						seamType, i - 1, a[i - 1], i, a[i]);
+				throw new IllegalArgumentException(msg);
+			}
+		}
+	}
+	
+	/**
 	 * Remove horizontal seam from picture
-	 * @param a array of column positions to remove
+	 * @param a array of row positions to remove at each successive column
 	 */
 	public void removeHorizontalSeam(int[] a) {
+		validateSeam(a, pict.width(), pict.height(), "horizontal");
+			
 		Picture newPict = new Picture(pict.width(), pict.height() - 1);
 		
 		for (int col = 0; col < pict.width(); col++) {
@@ -246,9 +275,11 @@ public class SeamCarver {
 	
 	/**
 	 * Remove vertical seam from picture
-	 * @param a array of column positions to remove
+	 * @param a array of column positions to remove at each successive row
 	 */
 	public void removeVerticalSeam(int[] a) {
+		validateSeam(a, pict.height(), pict.width(), "vertical");
+		
 		Picture newPict = new Picture(pict.width() - 1, pict.height());
 		
 		// copy pixel and energy values while eliminating the seam
@@ -272,7 +303,7 @@ public class SeamCarver {
 	 * Print the color matrix
 	 */
 	public void printColors() {
-		System.out.printf("Colors for %d col by %d row picture\n", width(), height());
+		System.out.printf("Colors for %d col by %d row picture:\n", width(), height());
 		for (int row = 0; row < pict.height(); row++) {
 			for (int col = 0; col < pict.width(); col++) {
 				Color pix = pict.get(col, row);
@@ -282,12 +313,11 @@ public class SeamCarver {
 		}
 	}
 	
-	
 	/**
 	 * Print the energy matrix
 	 */
 	public void printEnergies() {
-		System.out.printf("Energies for %d col by %d row picture\n", width(), height());
+		System.out.printf("Energies for %d col by %d row picture:\n", width(), height());
 		for (int row = 0; row < pict.height(); row++) {
 			for (int col = 0; col < pict.width(); col++) {
 				System.out.printf("%9.0f ", energy[col][row]);
@@ -296,12 +326,16 @@ public class SeamCarver {
 		}
 	}
 	
-	
 	/**
 	 * Print the distances matrix
 	 */
 	public void printDistances() {
-		System.out.printf("Distances for %d col by %d row picture\n", width(), height());
+		System.out.printf("Distances for %d col by %d row picture:\n", width(), height());
+		if (distTo == null) {
+			System.out.println("No distances calculated yet");
+			return;
+		}
+		
 		for (int row = 0; row < pict.height(); row++) {
 			for (int col = 0; col < pict.width(); col++) {
 				System.out.printf("%9.0f ", distTo[col][row]);
@@ -316,12 +350,15 @@ public class SeamCarver {
 	 * @param args cmd line arguments
 	 */
 	public static void main(String[] args) {
-		String infile = "../testing_files/HJocean.png";
-//		Picture pict = new Picture(infile);
-//		SeamCarver seam = new SeamCarver(pict);
-////		seam.printColors();
-////		seam.printEnergies();
-////		
+		String infile = "../testing_files/6x5.png";
+		Picture pict = new Picture(infile);
+		SeamCarver seam = new SeamCarver(pict);
+		
+		seam.printColors();
+		seam.printEnergies();
+		seam.relaxEdgesVerticalSeam();
+		seam.printDistances();
+		
 //		int[] vSeam = seam.findVerticalSeam();
 ////		seam.printDistances();
 //		for (int i = 0; i < vSeam.length; i++) {
@@ -334,13 +371,12 @@ public class SeamCarver {
 //			System.out.println(hSeam[i]);
 //		}
 //		seam.picture().show();
-//		for (int i = 0; i < 50; i++) {
-//			seam.removeHorizontalSeam(seam.findHorizontalSeam());
+//		for (int i = 0; i < 6; i++) {
+//			seam.removeVerticalSeam(seam.findVerticalSeam());
 //		}
 //		seam.picture().show();
 //		ShowSeams.main(new String[] {infile});
 		
-		ResizeDemo.main(new String[] {infile, "50", "50"});
+//		ResizeDemo.main(new String[] {infile, "50", "50"});
 	}
-
 }
