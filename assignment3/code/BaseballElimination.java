@@ -5,15 +5,16 @@
  * @author ckingsley
  *
  */
-class BaseballElimination {
-	private ST<String, TeamInfo> teams;
-	private int[][] schedule;
-	private FordFulkerson[] teamFlowSearches;
+public final class BaseballElimination {
+	private final ST<String, TeamInfo> teams;
+	private final int[][] schedule;
+	private final FordFulkerson[] teamFlowSearches;
 	
 	
 	/**
 	 * Constructor
-	 * Create a baseball division by reading information from the passed filename
+	 * Create a baseball division by reading information from the passed filename and constructing
+	 * flow networks for all teams that are not trivially eliminated
 	 * @param filename The full path of the input file
 	 */
 	public BaseballElimination(String filename) {
@@ -24,6 +25,7 @@ class BaseballElimination {
 		schedule = new int[numTeams][numTeams];
 		teamFlowSearches = new FordFulkerson[numTeams];
 		
+		// read information from input file
 		for (int i = 0; i < numTeams; i++) {
 			teams.put(in.readString(), new TeamInfo(i, in.readInt(), in.readInt(), in.readInt()));
 			
@@ -34,7 +36,7 @@ class BaseballElimination {
 		
 		in.close();
 		
-		// call function to build flow network and do flow search for each team
+		// build flow network and do flow search for each team that is not trivially eliminated
 		for (String team : teams) {
 			if (!isTriviallyEliminated(team)) {
 				buildFlowNetwork(team);
@@ -104,9 +106,10 @@ class BaseballElimination {
 	
 	
 	/**
-	 * Checks whether the team is trivially eliminated
+	 * Checks whether the team is trivially eliminated because another team has
+	 * more wins than max possible wins of the passed team 
 	 * @param team
-	 * @return
+	 * @return true if team is trivially eliminated, false otherwise
 	 */
 	private boolean isTriviallyEliminated(String team) {
 		TeamInfo teamInfo = teams.get(team);
@@ -189,25 +192,27 @@ class BaseballElimination {
 	/**
 	 * Returns the subset R of teams that eliminates given team or null if not eliminated
 	 * @param team The name of the team
-	 * @return
+	 * @return The subset R of teams that eliminates given team or null if not eliminated
 	 */
 	public Iterable<String> certificateOfElimination(String team) {
-		checkTeamName(team);
+		if (!isEliminated(team)) {
+			return(null);
+		}
 		
 		TeamInfo teamInfo = teams.get(team);
-		FordFulkerson flowSearch = teamFlowSearches[ teams.get(team).index ];
+		FordFulkerson flowSearch = teamFlowSearches[ teamInfo.index ];
 		Bag<String> eliminatingTeams = new Bag<String>();
 		
 		// add teams that eliminate the passed team, trivially or through the flow network
 		for (String otherTeam : teams) {
 			if (!otherTeam.equals(team)) {
+				TeamInfo otherTeamInfo = teams.get(otherTeam);
 				if (flowSearch == null) {
-					TeamInfo otherTeamInfo = teams.get(otherTeam);
 					if (otherTeamInfo.wins > teamInfo.wins + teamInfo.left) {
 						eliminatingTeams.add(otherTeam);
 					}
 				} else {
-					if (flowSearch.inCut(teams.get(otherTeam).index)) {
+					if (flowSearch.inCut(otherTeamInfo.index)) {
 						eliminatingTeams.add(otherTeam);
 					}
 				}
@@ -221,8 +226,9 @@ class BaseballElimination {
 	/**
 	 * Prints max wins for team and average possible wins for teams in certificate
 	 * of elimination
-	 * @param team
-	 * @param eliminatingTeams
+	 * @param team The name of the team
+	 * @param eliminatingTeams An iterable collection of the names of the teams that eliminated
+	 * the passed team
 	 */
 	private void printCertificateInfo(String team, Iterable<String> eliminatingTeams) {
 		int totalTeams = 0, totalWins = 0, totalLeft = 0;
@@ -255,6 +261,13 @@ class BaseballElimination {
 	private class TeamInfo {
 		int index, wins, losses, left;
 		
+		/**
+		 * Constuctor
+		 * @param index numerical index of the vertex representing the team
+		 * @param wins number of wins of the team
+		 * @param losses number of losses of the team
+		 * @param left number of games left of the team
+		 */
 		private TeamInfo(int index, int wins, int losses, int left) {
 			this.index = index;
 			this.wins = wins;
@@ -262,6 +275,9 @@ class BaseballElimination {
 			this.left = left;
 		}
 		
+		/**
+		 * Returns string representation of the team information
+		 */
 		public String toString() {
 			return String.format("index:%d wins:%d, losses:%d left:%d\n", index, wins, losses, left);
 		}
@@ -309,7 +325,7 @@ class BaseballElimination {
 	            for (String t : eliminatingTeams)
 	                StdOut.print(t + " ");
 	            StdOut.println("}");
-	            // division.printCertificateInfo(team, eliminatingTeams);
+	            division.printCertificateInfo(team, eliminatingTeams);
 	        }
 	        else {
 	            StdOut.println(team + " is not eliminated");
