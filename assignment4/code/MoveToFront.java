@@ -1,7 +1,5 @@
-import java.util.Arrays;
-
 /**
- * 
+ * Class implementing move to front encoding
  * @author ckingsley
  *
  */

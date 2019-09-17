@@ -6,6 +6,7 @@ import java.util.Arrays;
  *
  */
 public class BurrowsWheeler { 
+    public static final int R = 256;
     
 	/**
      * Apply Burrows-Wheeler encoding, reading from standard input and writing to standard output
@@ -18,6 +19,7 @@ public class BurrowsWheeler {
 		for (int i = 0; i < circArray.length(); i++) {
 			if (circArray.index(i) == 0) {
 				first = i;
+				BinaryStdOut.write(i);
 			}
 			
 			int pos = (circArray.index(i) + circArray.length() - 1) % circArray.length();
@@ -44,6 +46,24 @@ public class BurrowsWheeler {
      * Apply Burrows-Wheeler decoding, reading from standard input and writing to standard output
      */
     public static void decode() {
+    	int firstPos = 3;
+    	char[] last = new String("ARD!RCAAAABB").toCharArray(), first = new char[ last.length ];
+    	int[] counts = new int[ R ];
+    	
+    	// use key index counting to sort char array in O(n) time
+    	for (int i = 0; i < last.length; i++) {
+    		counts[ last[i] ]++;
+    	}
+    	int idx = 0;
+    	for (int i = 0; i < counts.length; i++) {
+			for (int j = 0; j < counts[i]; j++) {
+				first[idx++] = (char)i;
+			}
+			if (idx == last.length) {
+				break;
+			}
+    	}
+    	System.out.println("first:" + Arrays.toString(first));
     	
     }
 
@@ -57,6 +77,7 @@ public class BurrowsWheeler {
      */
     public static void main(String[] args) {
 //    	encode(); System.exit(0);
+    	decode(); System.exit(0);
     	if (args == null || args.length == 0) {
     		System.out.println("Usage: BurrowsWheeler +/- stdin");
     		System.exit(1);
