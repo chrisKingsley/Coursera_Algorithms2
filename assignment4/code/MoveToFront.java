@@ -7,23 +7,24 @@ public class MoveToFront {
     static final int R = 256;
     
 	/**
-     * Apply move-to-front encoding, reading from standard input and writing to standard output
+     * Apply move-to-front encoding, reading from BinaryStdIn and writing to BinaryStdOut
      */
     public static void encode() {
     	char[] sequence = new char[R];
     	int[] lookup = new int[R];
     	initArrays(sequence, lookup);
-    	
-    	while (StdIn.hasNextChar()) {
-    		char c = StdIn.readChar();
-    		StdOut.print(lookup[c] + " ");
+    		
+    	while (!BinaryStdIn.isEmpty()) {
+    		int c = BinaryStdIn.readInt(8);
+    		BinaryStdOut.write((char)lookup[c]);
     		shiftArrays(sequence, lookup, lookup[c]);
     	}
+    	BinaryStdOut.close();
     }
     
     
     /**
-     * Apply move-to-front decoding, reading from standard input and writing to standard output
+     * Apply move-to-front decoding, reading from BinaryStdIn and writing to BinaryStdOut
      */
     public static void decode() {
     	char[] sequence = new char[R];
@@ -31,7 +32,7 @@ public class MoveToFront {
     	initArrays(sequence, lookup);
     	
     	while (!BinaryStdIn.isEmpty()) {
-    		int pos = BinaryStdIn.readInt();
+    		int pos = BinaryStdIn.readInt(8);
     		BinaryStdOut.write(sequence[pos]);
     		shiftArrays(sequence, lookup, pos);
     	}

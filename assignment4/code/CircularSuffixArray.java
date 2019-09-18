@@ -1,7 +1,7 @@
 import java.util.Arrays;
 
 /**
- * 
+ * Class representing a circular suffix array
  * @author ckingsley
  *
  */
@@ -23,16 +23,12 @@ public class CircularSuffixArray {
 	}
     
 	
-	public char[] getText() {
-		return text;
-	}
-	
 	/**
-	 * Return the length of the string
-	 * @return length of the string
+	 * Returns the length of the text to be compressed
+	 * @return length of the text to be compressed
 	 */
 	public int length() {
-		return(text.length);
+		return text.length;
 	}
     
 	
@@ -102,7 +98,7 @@ public class CircularSuffixArray {
 	 */
 	public static void main(String[] args) {
 		CircularSuffixArray circArray = new CircularSuffixArray("ABRACADABRA!");
-		for (int i = 0; i < circArray.length(); i++) {
+		for (int i = 0; i < circArray.text.length; i++) {
 			System.out.printf("%d %d\n", i, circArray.index(i));
 		}
 	}

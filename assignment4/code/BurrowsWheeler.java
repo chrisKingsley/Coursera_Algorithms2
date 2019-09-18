@@ -12,59 +12,54 @@ public class BurrowsWheeler {
      * Apply Burrows-Wheeler encoding, reading from standard input and writing to standard output
      */
 	public static void encode() {
-		CircularSuffixArray circArray = new CircularSuffixArray("ABRACADABRA!");
-		char[] encoding = new char[ circArray.length() ];
-		int first = -1;
+		String s = BinaryStdIn.readString();
+		CircularSuffixArray circArray = new CircularSuffixArray(s);
+		char[] encoded = new char[ s.length() ];
+		int firstPos = -1;
 		
-		for (int i = 0; i < circArray.length(); i++) {
+		for (int i = 0; i < s.length(); i++) {
 			if (circArray.index(i) == 0) {
-				first = i;
-				BinaryStdOut.write(i);
+				firstPos = i;
 			}
-			
-			int pos = (circArray.index(i) + circArray.length() - 1) % circArray.length();
-			encoding[i] = circArray.getText()[pos];
-//			encoding[i] = getLastCharAt(circArray.getText(), circArray.index(i));
+			int pos = (circArray.index(i) + s.length() - 1) % s.length();
+			encoded[i] = s.charAt(pos);
 		}
 		
-		System.out.println(first + " " + Arrays.toString(encoding));
+		BinaryStdOut.write(firstPos);
+		BinaryStdOut.write(new String(encoded));
+		BinaryStdOut.close();
     }
 	
-//	/**
-//	 * Get the last character from the permuted string at the specified index in the circular array
-//	 * @param text original unencoded text
-//	 * @param index array index of the circular permuted 
-//	 * @return
-//	 */
-//	private static char getLastCharAt(char[] text, int index) {
-//		int pos = (index + text.length - 1) % text.length;
-//		
-//		return text[pos];
-//	}
 
     /**
      * Apply Burrows-Wheeler decoding, reading from standard input and writing to standard output
      */
     public static void decode() {
-    	int firstPos = 3;
-    	char[] last = new String("ARD!RCAAAABB").toCharArray(), first = new char[ last.length ];
-    	int[] counts = new int[ R ];
+    	int firstPos = BinaryStdIn.readInt();
+    	String s = BinaryStdIn.readString();
+    	char[] last = s.toCharArray(), first = new char[ s.length() ];
+    	int[] counts = new int[ R + 1 ], next = new int[ s.length() ];
     	
-    	// use key index counting to sort char array in O(n) time
+    	// use key index counting to sort last column char array and generate next array in O(n) time 
     	for (int i = 0; i < last.length; i++) {
+    		counts[ last[i] + 1 ]++;
+    	}
+    	for (int r = 0; r < R; r++) {
+    		counts[ r + 1 ] += counts[ r ];
+    	}
+    	for (int i = 0; i < first.length; i++) {
+    		first[ counts[ last[i] ] ] = last[i];
+    		next[ counts[ last[i] ] ] = i;
     		counts[ last[i] ]++;
     	}
-    	int idx = 0;
-    	for (int i = 0; i < counts.length; i++) {
-			for (int j = 0; j < counts[i]; j++) {
-				first[idx++] = (char)i;
-			}
-			if (idx == last.length) {
-				break;
-			}
-    	}
-    	System.out.println("first:" + Arrays.toString(first));
     	
+    	// decode string using next array
+    	int nextIndex = firstPos;
+    	for (int i = 0; i < next.length; i++) {
+    		BinaryStdOut.write(first[ nextIndex ]);
+    		nextIndex = next[ nextIndex ];
+    	}
+    	BinaryStdOut.close();
     }
 
     
@@ -76,8 +71,6 @@ public class BurrowsWheeler {
      * @param args command line args
      */
     public static void main(String[] args) {
-//    	encode(); System.exit(0);
-    	decode(); System.exit(0);
     	if (args == null || args.length == 0) {
     		System.out.println("Usage: BurrowsWheeler +/- stdin");
     		System.exit(1);
